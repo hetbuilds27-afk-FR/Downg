@@ -9,7 +9,10 @@ app = Flask(__name__)
 
 # ---------------- SETTINGS ----------------
 
-DOWNLOAD_FOLDER = "downloads"
+# Use /tmp on hosted/containerized environments (ephemeral, but always
+# writable regardless of platform). Falls back to a local folder for
+# local development on Windows.
+DOWNLOAD_FOLDER = os.environ.get("DOWNLOAD_FOLDER", "downloads")
 
 if not os.path.exists(DOWNLOAD_FOLDER):
     os.makedirs(DOWNLOAD_FOLDER)
@@ -135,6 +138,10 @@ def download_audio(url, download_id):
         if FFMPEG_LOCATION:
             ydl_opts['ffmpeg_location'] = FFMPEG_LOCATION
 
+        cookies_path = os.environ.get("YTDLP_COOKIES_FILE")
+        if cookies_path and os.path.exists(cookies_path):
+            ydl_opts['cookiefile'] = cookies_path
+
         with yt_dlp.YoutubeDL(ydl_opts) as ydl:
 
             info = ydl.extract_info(url, download=True)
@@ -181,7 +188,35 @@ def progress(download_id):
         download_progress.get(download_id, {})
     )
 
-# ---------------- FILE DOWNLOAD ----------------
+# ---------------- STREAM (play in browser, no download) ----------------
+
+@app.route("/stream/<download_id>")
+def stream_file(download_id):
+
+    data = download_progress.get(download_id)
+
+    if not data:
+        return "Invalid download ID"
+
+    file_path = data.get("filename")
+
+    if not file_path:
+        return "File not ready"
+
+    if not os.path.exists(file_path):
+        return "File not found"
+
+    # as_attachment=False + explicit mimetype: browser plays it inline
+    # instead of triggering a Save As dialog. conditional=True enables
+    # range requests, which the <audio> scrubber needs to seek properly.
+    return send_file(
+        file_path,
+        as_attachment=False,
+        mimetype="audio/mpeg",
+        conditional=True
+    )
+
+# ---------------- FILE DOWNLOAD (optional, still available) ----------------
 
 @app.route("/file/<download_id>")
 def get_file(download_id):
