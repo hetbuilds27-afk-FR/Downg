@@ -129,15 +129,6 @@ async function startDownload() {
     checkProgress(downloadId);
 }
 
-function renderPlayer(downloadId) {
-    const player = document.createElement("audio");
-    player.controls = true;
-    player.autoplay = true;
-    player.src = `/stream/${downloadId}`;
-    player.className = "player";
-    return player;
-}
-
 async function checkProgress(downloadId) {
 
     const status =
@@ -196,12 +187,26 @@ async function checkProgress(downloadId) {
 
             status.innerHTML = `
                 <div class="song-title">${data.title}</div>
-                <div class="completed">extraction complete — streaming from server</div>
+                <div class="completed">extraction complete — file ready</div>
             `;
+
+            const link = document.createElement("a");
+            link.href = `/file/${downloadId}`;
+            link.className = "download-link";
+            link.textContent = "[ download mp3 ]";
+            link.setAttribute("download", "");
+            status.appendChild(link);
 
             if (!autoDownloadFired) {
                 autoDownloadFired = true;
-                status.appendChild(renderPlayer(downloadId));
+                // Auto-trigger the browser download once, without navigating away
+                const hiddenLink = document.createElement("a");
+                hiddenLink.href = `/file/${downloadId}`;
+                hiddenLink.setAttribute("download", "");
+                hiddenLink.style.display = "none";
+                document.body.appendChild(hiddenLink);
+                hiddenLink.click();
+                hiddenLink.remove();
             }
         }
 
