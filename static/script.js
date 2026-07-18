@@ -63,6 +63,31 @@ document.addEventListener("DOMContentLoaded", () => {
     startMatrixRain();
 });
 
+// ---------------- RESTART SERVER ----------------
+// The server itself opens a fresh browser tab pointing at the new
+// Cloudflare link once the tunnel comes back up, so this tab doesn't need
+// to poll or redirect anywhere - it can just report status.
+
+async function restartServer() {
+
+    const status = document.getElementById("status");
+
+    const confirmed = window.confirm(
+        "Restart the server? Any in-progress download will be interrupted, " +
+        "and a new browser tab will open with the new Cloudflare link."
+    );
+
+    if (!confirmed) return;
+
+    status.innerHTML = `<span class="dim">&gt; restarting server, a new tab will open shortly</span><span class="cursor-blink"></span>`;
+
+    try {
+        await fetch("/restart", { method: "POST" });
+    } catch (err) {
+        // The response may never arrive if the process dies fast - that's fine.
+    }
+}
+
 async function startDownload() {
 
     const url =
