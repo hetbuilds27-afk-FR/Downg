@@ -34,14 +34,27 @@ FFMPEG_LOCATION = None  # e.g. r"C:\ffmpeg\bin"
 WRITABLE_COOKIES_PATH = None
 
 _source_cookies = os.environ.get("YTDLP_COOKIES_FILE")
-if _source_cookies and os.path.exists(_source_cookies):
-    try:
-        _writable_path = os.path.join(tempfile.gettempdir(), "cookies.txt")
-        shutil.copyfile(_source_cookies, _writable_path)
-        WRITABLE_COOKIES_PATH = _writable_path
-    except Exception:
-        traceback.print_exc()
-        WRITABLE_COOKIES_PATH = None
+print(f"[cookies] YTDLP_COOKIES_FILE env var = {_source_cookies!r}")
+
+if _source_cookies:
+    if not os.path.exists(_source_cookies):
+        print(f"[cookies] ERROR: path does not exist: {_source_cookies}")
+    else:
+        _size = os.path.getsize(_source_cookies)
+        print(f"[cookies] source file found, size = {_size} bytes")
+        if _size == 0:
+            print("[cookies] WARNING: source cookies file is empty — re-export it")
+        try:
+            _writable_path = os.path.join(tempfile.gettempdir(), "cookies.txt")
+            shutil.copyfile(_source_cookies, _writable_path)
+            WRITABLE_COOKIES_PATH = _writable_path
+            print(f"[cookies] copied to writable path: {WRITABLE_COOKIES_PATH}")
+        except Exception:
+            print("[cookies] ERROR copying cookies file:")
+            traceback.print_exc()
+            WRITABLE_COOKIES_PATH = None
+else:
+    print("[cookies] no YTDLP_COOKIES_FILE env var set — running without cookies")
 
 # ---------------- HOME PAGE ----------------
 
@@ -115,6 +128,7 @@ def download_audio(url, download_id):
 
     has_cookies = bool(WRITABLE_COOKIES_PATH and os.path.exists(WRITABLE_COOKIES_PATH))
     cookies_path = WRITABLE_COOKIES_PATH
+    print(f"[cookies] has_cookies={has_cookies} path={cookies_path!r}")
 
     try:
 
