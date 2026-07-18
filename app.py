@@ -197,7 +197,9 @@ def get_file(download_id):
 
     return send_file(
         file_path,
-        as_attachment=True
+        mimetype="audio/mpeg",
+        as_attachment=True,
+        download_name=os.path.basename(file_path)
     )
 
 # ---------------- RUN SERVER ----------------
