@@ -1,0 +1,75 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+
+    <meta charset="UTF-8">
+
+    <meta name="viewport"
+          content="width=device-width, initial-scale=1.0">
+
+    <title>yt-extract // console</title>
+
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;700;800&display=swap" rel="stylesheet">
+
+    <link rel="stylesheet"
+          href="/static/style.css">
+
+</head>
+
+<body>
+
+<div class="crt-overlay"></div>
+
+<div class="terminal">
+
+    <div class="titlebar">
+        <div class="dots">
+            <span class="dot dot-red"></span>
+            <span class="dot dot-yellow"></span>
+            <span class="dot dot-green"></span>
+        </div>
+        <div class="titlebar-label">root@yt-extract:~</div>
+        <div class="titlebar-spacer"></div>
+    </div>
+
+    <div class="crt-body">
+
+        <div class="boot-log" id="boot-log"></div>
+
+        <div class="prompt-row">
+            <span class="prompt-glyph">root@yt-extract:~$</span>
+            <input type="text"
+                   id="url"
+                   class="prompt-input"
+                   placeholder="paste_target_url"
+                   autocomplete="off"
+                   spellcheck="false">
+        </div>
+
+        <button id="run-btn" onclick="startDownload()">
+            <span class="btn-bracket">[</span>./extract.sh<span class="btn-bracket">]</span>
+        </button>
+
+        <div class="progress-container">
+            <div class="progress-label">
+                <span id="progress-percent">0%</span>
+            </div>
+            <div class="progress-track">
+                <div class="progress-bar" id="progress-bar"></div>
+            </div>
+        </div>
+
+        <div id="status" class="log-output">
+            <span class="dim">&gt; awaiting input_</span>
+        </div>
+
+    </div>
+
+</div>
+
+<script src="/static/script.js"></script>
+
+</body>
+</html>
