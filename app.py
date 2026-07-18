@@ -4,6 +4,8 @@ import os
 import uuid
 import threading
 import traceback
+import shutil
+import tempfile
 
 app = Flask(__name__)
 
@@ -22,6 +24,24 @@ download_progress = {}
 # If ffmpeg is not on your system PATH, set the full path to its folder here.
 # Example: r"C:\ffmpeg\bin"
 FFMPEG_LOCATION = None  # e.g. r"C:\ffmpeg\bin"
+
+# ---------------- COOKIES SETUP ----------------
+# Render's Secret Files mount (e.g. /etc/secrets/cookies.txt) is read-only,
+# but yt-dlp needs to write updated session cookies back to the file it's
+# given. So on startup, copy the read-only secret into a writable temp
+# location and use THAT path everywhere instead.
+
+WRITABLE_COOKIES_PATH = None
+
+_source_cookies = os.environ.get("YTDLP_COOKIES_FILE")
+if _source_cookies and os.path.exists(_source_cookies):
+    try:
+        _writable_path = os.path.join(tempfile.gettempdir(), "cookies.txt")
+        shutil.copyfile(_source_cookies, _writable_path)
+        WRITABLE_COOKIES_PATH = _writable_path
+    except Exception:
+        traceback.print_exc()
+        WRITABLE_COOKIES_PATH = None
 
 # ---------------- HOME PAGE ----------------
 
@@ -93,8 +113,8 @@ def download_audio(url, download_id):
                 "Converting to MP3..."
             )
 
-    cookies_path = os.environ.get("YTDLP_COOKIES_FILE")
-    has_cookies = bool(cookies_path and os.path.exists(cookies_path))
+    has_cookies = bool(WRITABLE_COOKIES_PATH and os.path.exists(WRITABLE_COOKIES_PATH))
+    cookies_path = WRITABLE_COOKIES_PATH
 
     try:
 
