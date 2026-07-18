@@ -93,11 +93,18 @@ def download_audio(url, download_id):
                 "Converting to MP3..."
             )
 
+    cookies_path = os.environ.get("YTDLP_COOKIES_FILE")
+    has_cookies = bool(cookies_path and os.path.exists(cookies_path))
+
     try:
 
         # ---------------- GET TITLE FIRST ----------------
 
-        with yt_dlp.YoutubeDL({'quiet': True}) as ydl:
+        title_opts = {'quiet': True}
+        if has_cookies:
+            title_opts['cookiefile'] = cookies_path
+
+        with yt_dlp.YoutubeDL(title_opts) as ydl:
 
             info = ydl.extract_info(url, download=False)
 
@@ -138,8 +145,7 @@ def download_audio(url, download_id):
         if FFMPEG_LOCATION:
             ydl_opts['ffmpeg_location'] = FFMPEG_LOCATION
 
-        cookies_path = os.environ.get("YTDLP_COOKIES_FILE")
-        if cookies_path and os.path.exists(cookies_path):
+        if has_cookies:
             ydl_opts['cookiefile'] = cookies_path
 
         with yt_dlp.YoutubeDL(ydl_opts) as ydl:
