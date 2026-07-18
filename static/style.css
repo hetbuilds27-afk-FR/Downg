@@ -34,12 +34,53 @@ body{
         radial-gradient(ellipse at top, rgba(62,240,122,0.06), transparent 60%);
 }
 
+/* signature element: falling matrix rain behind everything */
+#matrix-rain{
+    position: fixed;
+    inset: 0;
+    z-index: 0;
+    display: block;
+    background: var(--bg);
+}
+
+.terminal{
+    position: relative;
+    z-index: 1;
+}
+
+.ascii-header{
+    font-size: 20px;
+    font-weight: 800;
+    letter-spacing: 0.08em;
+    color: var(--green-bright);
+    text-shadow: 0 0 8px rgba(62,240,122,0.5);
+    margin-bottom: 14px;
+    animation: glitch-flicker 7s infinite;
+}
+
+.ascii-sub{
+    display: block;
+    font-size: 10.5px;
+    font-weight: 400;
+    letter-spacing: 0.05em;
+    color: var(--text-dim);
+    text-shadow: none;
+    margin-top: 2px;
+}
+
+@keyframes glitch-flicker{
+    0%, 92%, 100% { opacity: 1; transform: translateX(0); }
+    93% { opacity: 0.7; transform: translateX(-1px); }
+    94% { opacity: 1; transform: translateX(1px); }
+    95% { opacity: 0.85; transform: translateX(0); }
+}
+
 /* signature element: scanline + flicker overlay across the whole viewport */
 .crt-overlay{
     position:fixed;
     inset:0;
     pointer-events:none;
-    z-index:50;
+    z-index:2;
     background: repeating-linear-gradient(
         to bottom,
         rgba(0,0,0,0) 0px,

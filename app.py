@@ -4,17 +4,12 @@ import os
 import uuid
 import threading
 import traceback
-import shutil
-import tempfile
 
 app = Flask(__name__)
 
 # ---------------- SETTINGS ----------------
 
-# Use /tmp on hosted/containerized environments (ephemeral, but always
-# writable regardless of platform). Falls back to a local folder for
-# local development on Windows.
-DOWNLOAD_FOLDER = os.environ.get("DOWNLOAD_FOLDER", "downloads")
+DOWNLOAD_FOLDER = "downloads"
 
 if not os.path.exists(DOWNLOAD_FOLDER):
     os.makedirs(DOWNLOAD_FOLDER)
@@ -24,37 +19,6 @@ download_progress = {}
 # If ffmpeg is not on your system PATH, set the full path to its folder here.
 # Example: r"C:\ffmpeg\bin"
 FFMPEG_LOCATION = None  # e.g. r"C:\ffmpeg\bin"
-
-# ---------------- COOKIES SETUP ----------------
-# Render's Secret Files mount (e.g. /etc/secrets/cookies.txt) is read-only,
-# but yt-dlp needs to write updated session cookies back to the file it's
-# given. So on startup, copy the read-only secret into a writable temp
-# location and use THAT path everywhere instead.
-
-WRITABLE_COOKIES_PATH = None
-
-_source_cookies = os.environ.get("YTDLP_COOKIES_FILE")
-print(f"[cookies] YTDLP_COOKIES_FILE env var = {_source_cookies!r}")
-
-if _source_cookies:
-    if not os.path.exists(_source_cookies):
-        print(f"[cookies] ERROR: path does not exist: {_source_cookies}")
-    else:
-        _size = os.path.getsize(_source_cookies)
-        print(f"[cookies] source file found, size = {_size} bytes")
-        if _size == 0:
-            print("[cookies] WARNING: source cookies file is empty — re-export it")
-        try:
-            _writable_path = os.path.join(tempfile.gettempdir(), "cookies.txt")
-            shutil.copyfile(_source_cookies, _writable_path)
-            WRITABLE_COOKIES_PATH = _writable_path
-            print(f"[cookies] copied to writable path: {WRITABLE_COOKIES_PATH}")
-        except Exception:
-            print("[cookies] ERROR copying cookies file:")
-            traceback.print_exc()
-            WRITABLE_COOKIES_PATH = None
-else:
-    print("[cookies] no YTDLP_COOKIES_FILE env var set — running without cookies")
 
 # ---------------- HOME PAGE ----------------
 
@@ -126,19 +90,11 @@ def download_audio(url, download_id):
                 "Converting to MP3..."
             )
 
-    has_cookies = bool(WRITABLE_COOKIES_PATH and os.path.exists(WRITABLE_COOKIES_PATH))
-    cookies_path = WRITABLE_COOKIES_PATH
-    print(f"[cookies] has_cookies={has_cookies} path={cookies_path!r}")
-
     try:
 
         # ---------------- GET TITLE FIRST ----------------
 
-        title_opts = {'quiet': True}
-        if has_cookies:
-            title_opts['cookiefile'] = cookies_path
-
-        with yt_dlp.YoutubeDL(title_opts) as ydl:
+        with yt_dlp.YoutubeDL({'quiet': True}) as ydl:
 
             info = ydl.extract_info(url, download=False)
 
@@ -167,7 +123,6 @@ def download_audio(url, download_id):
                 'preferredquality': '192',
             }],
 
-            # quiet/ignoreerrors OFF: these were hiding the real failure.
             'quiet': False,
             'no_warnings': False,
 
@@ -178,9 +133,6 @@ def download_audio(url, download_id):
 
         if FFMPEG_LOCATION:
             ydl_opts['ffmpeg_location'] = FFMPEG_LOCATION
-
-        if has_cookies:
-            ydl_opts['cookiefile'] = cookies_path
 
         with yt_dlp.YoutubeDL(ydl_opts) as ydl:
 
@@ -196,7 +148,6 @@ def download_audio(url, download_id):
                 + ".mp3"
             )
 
-            # Don't trust that postprocessing worked — verify the file exists.
             if not os.path.exists(mp3_file):
                 raise RuntimeError(
                     f"MP3 file was not created at expected path: {mp3_file}. "
@@ -211,8 +162,6 @@ def download_audio(url, download_id):
 
     except Exception as e:
 
-        # Full traceback to the console so the real error is visible,
-        # not just swallowed into a generic status string.
         traceback.print_exc()
 
         download_progress[download_id]["status"] = (
@@ -228,35 +177,7 @@ def progress(download_id):
         download_progress.get(download_id, {})
     )
 
-# ---------------- STREAM (play in browser, no download) ----------------
-
-@app.route("/stream/<download_id>")
-def stream_file(download_id):
-
-    data = download_progress.get(download_id)
-
-    if not data:
-        return "Invalid download ID"
-
-    file_path = data.get("filename")
-
-    if not file_path:
-        return "File not ready"
-
-    if not os.path.exists(file_path):
-        return "File not found"
-
-    # as_attachment=False + explicit mimetype: browser plays it inline
-    # instead of triggering a Save As dialog. conditional=True enables
-    # range requests, which the <audio> scrubber needs to seek properly.
-    return send_file(
-        file_path,
-        as_attachment=False,
-        mimetype="audio/mpeg",
-        conditional=True
-    )
-
-# ---------------- FILE DOWNLOAD (optional, still available) ----------------
+# ---------------- FILE DOWNLOAD ----------------
 
 @app.route("/file/<download_id>")
 def get_file(download_id):

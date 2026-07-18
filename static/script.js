@@ -19,7 +19,49 @@ function playBootLog() {
     });
 }
 
-document.addEventListener("DOMContentLoaded", playBootLog);
+function startMatrixRain() {
+    const canvas = document.getElementById("matrix-rain");
+    const ctx = canvas.getContext("2d");
+
+    const chars = "アイウエオカキクケコサシスセソ01ABCDEFGHIJKLMNOPQRSTUVWXYZ";
+
+    let columns, drops;
+
+    function resize() {
+        canvas.width = window.innerWidth;
+        canvas.height = window.innerHeight;
+        columns = Math.floor(canvas.width / 16);
+        drops = new Array(columns).fill(1);
+    }
+
+    resize();
+    window.addEventListener("resize", resize);
+
+    function draw() {
+        ctx.fillStyle = "rgba(10, 14, 10, 0.08)";
+        ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+        ctx.fillStyle = "#2a7a4a";
+        ctx.font = "14px 'JetBrains Mono', monospace";
+
+        for (let i = 0; i < drops.length; i++) {
+            const char = chars[Math.floor(Math.random() * chars.length)];
+            ctx.fillText(char, i * 16, drops[i] * 16);
+
+            if (drops[i] * 16 > canvas.height && Math.random() > 0.975) {
+                drops[i] = 0;
+            }
+            drops[i]++;
+        }
+    }
+
+    setInterval(draw, 60);
+}
+
+document.addEventListener("DOMContentLoaded", () => {
+    playBootLog();
+    startMatrixRain();
+});
 
 async function startDownload() {
 
@@ -87,13 +129,13 @@ async function startDownload() {
     checkProgress(downloadId);
 }
 
-function triggerAutoDownload(downloadId) {
-    const link = document.createElement("a");
-    link.href = `/file/${downloadId}`;
-    link.setAttribute("download", "");
-    document.body.appendChild(link);
-    link.click();
-    link.remove();
+function renderPlayer(downloadId) {
+    const player = document.createElement("audio");
+    player.controls = true;
+    player.autoplay = true;
+    player.src = `/stream/${downloadId}`;
+    player.className = "player";
+    return player;
 }
 
 async function checkProgress(downloadId) {
@@ -154,15 +196,12 @@ async function checkProgress(downloadId) {
 
             status.innerHTML = `
                 <div class="song-title">${data.title}</div>
-                <div class="completed">extraction complete — pulling file to disk</div>
-                <a class="download-link" href="/file/${downloadId}">
-                    manual download (if auto-save was blocked)
-                </a>
+                <div class="completed">extraction complete — streaming from server</div>
             `;
 
             if (!autoDownloadFired) {
                 autoDownloadFired = true;
-                triggerAutoDownload(downloadId);
+                status.appendChild(renderPlayer(downloadId));
             }
         }
 
